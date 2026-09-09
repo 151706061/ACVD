@@ -27,6 +27,7 @@ Auteur:   Sebastien Valette
 #include <vtkImageThreshold.h>
 #include <vtkMultiThreader.h>
 #include <mutex>
+#include <vtkOBJWriter.h>
 #include <vtkPLYWriter.h>
 #include <vtkPointData.h>
 #include <vtkPolyDataWriter.h>
@@ -140,8 +141,13 @@ VTK_THREAD_RETURN_TYPE ThreadedSurfaceExtraction (void *arg)
 			Writer = (vtkPolyDataWriter*) vtkPLYWriter::New();
 		} else {
 			strcpy (extension, "stl");
-			if (strstr(Format, extension) != NULL)
+			if (strstr(Format, extension) != NULL) {
 				Writer = (vtkPolyDataWriter*) vtkSTLWriter::New();		
+			} else {
+				strcpy (extension, "obj");
+				if (strstr(Format, extension) != NULL)
+					Writer = (vtkPolyDataWriter*) vtkOBJWriter::New();
+			}
 		}
 	}
 
@@ -400,7 +406,7 @@ int main( int argc, char *argv[] )
 		cout<<"-sm number : sets the number of smoothing steps (default : 0)"<<endl;
 		cout<<"-g number : sets the gradation parameter when using ACVD"<<endl;
 		cout<<"-o directory : sets the output directory"<<endl;
-		cout<<"-f format : sets the output mesh format (default : vtk)"<<endl;
+		cout<<"-f format : sets the output mesh format (vtk, ply, stl, obj, default : vtk)"<<endl;
 		cout<<"-m 0/1 : forces manifold output (default : 0)"<<endl;
 		cout<<"-a 0/1 : uses anisotropic coarsening (default : 0)"<<endl;
 		cout<<"-c 0/1 : keeps (or not) only each biggest component (default : 0)"<<endl;

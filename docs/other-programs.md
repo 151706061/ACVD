@@ -23,7 +23,7 @@ Generates surface meshes from 3D label volume segmentations (e.g. MetaImage `.mh
 - `-sm <number>`: Number of smoothing iterations (default: `0`).
 - `-g <number>`: Gradation parameter for ACVD remeshing.
 - `-o <directory>`: Output directory.
-- `-f <format>`: Output mesh format (`vtk`, `ply`, `stl`).
+- `-f <format>`: Output mesh format (`vtk`, `ply`, `stl`, `obj`).
 - `-m <0|1>`: Force 2-manifold output (default: `0`).
 - `-a <0|1>`: Anisotropic coarsening (`1` = enabled, `0` = disabled).
 - `-c <0|1>`: Retain only the largest connected component (`1` = enabled).
