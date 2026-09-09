@@ -594,7 +594,7 @@ int main( int argc, char *argv[] )
 
 			std::stringstream name;
 			int label = Labels->GetId( i );
-			name << "label" << label << ".mhd";
+			name << Helper.OutputDirectory << "label" << label << ".mhd";
 			threshold->ThresholdBetween( label, label );
 			threshold->Update();
 			writer->SetInputData( threshold->GetOutput() );
@@ -699,7 +699,8 @@ int main( int argc, char *argv[] )
 		cout<< "XML element for label " << Label << " done"<<endl;
 	}
 
-	vtkXMLUtilities::WriteElementToFile (Root, "meshes.xml");
+	std::string xmlFileName = std::string(Helper.OutputDirectory) + "meshes.xml";
+	vtkXMLUtilities::WriteElementToFile (Root, xmlFileName.c_str());
 //	Reader->Delete();
 	cout << "reader deleted" << endl;
 //	Root->Delete();
