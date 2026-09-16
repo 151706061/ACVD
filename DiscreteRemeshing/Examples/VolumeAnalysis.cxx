@@ -7,7 +7,7 @@ Date:      2011/02
 Auteur:   Sebastien Valette
 
 =========================================================================*/
-// .NAME VolumeAnalysis 
+// .NAME VolumeAnalysis
 // .SECTION Description
 
 #include <sstream>
@@ -35,6 +35,8 @@ Auteur:   Sebastien Valette
 #include <vtkSortDataArray.h>
 #include <vtkSTLWriter.h>
 #include <vtkTimerLog.h>
+#include <vtkSmartPointer.h>
+#include <vtkVersion.h>
 #include <vtkWindowedSincPolyDataFilter.h>
 #include <vtkXMLDataElement.h>
 #include <vtkXMLUtilities.h>
@@ -42,6 +44,39 @@ Auteur:   Sebastien Valette
 #include "vtkIsotropicDiscreteRemeshing.h"
 #include "vtkAnisotropicDiscreteRemeshing.h"
 #include "../VolumeProcessing/vtkRobustImageReader.h"
+
+void WritePolyDataToFile(vtkPolyData* mesh, const char* filename, const char* format)
+{
+	char lowerFormat[10];
+	strncpy(lowerFormat, format, sizeof(lowerFormat) - 1);
+	lowerFormat[sizeof(lowerFormat) - 1] = '\0';
+	for (char *p = lowerFormat; *p; ++p) *p = tolower(*p);
+
+	if (strstr(lowerFormat, "ply") != NULL) {
+		vtkSmartPointer<vtkPLYWriter> writer = vtkSmartPointer<vtkPLYWriter>::New();
+		writer->SetInputData(mesh);
+		writer->SetFileName(filename);
+		writer->Write();
+	} else if (strstr(lowerFormat, "stl") != NULL) {
+		vtkSmartPointer<vtkSTLWriter> writer = vtkSmartPointer<vtkSTLWriter>::New();
+		writer->SetInputData(mesh);
+		writer->SetFileName(filename);
+		writer->Write();
+	} else if (strstr(lowerFormat, "obj") != NULL) {
+		vtkSmartPointer<vtkOBJWriter> writer = vtkSmartPointer<vtkOBJWriter>::New();
+		writer->SetInputData(mesh);
+		writer->SetFileName(filename);
+		writer->Write();
+	} else {
+		vtkSmartPointer<vtkPolyDataWriter> writer = vtkSmartPointer<vtkPolyDataWriter>::New();
+		writer->SetInputData(mesh);
+#if ( ( VTK_MAJOR_VERSION >= 9 ) && ( VTK_MINOR_VERSION >= 1 ) )
+		writer->SetFileVersion(42);
+#endif
+		writer->SetFileName(filename);
+		writer->Write();
+	}
+}
 
 #define NumberOfTimingTypes 6
 
@@ -128,28 +163,7 @@ VTK_THREAD_RETURN_TYPE ThreadedSurfaceExtraction (void *arg)
 	vtkImageData *Image = vtkImageData::New();
 	Image->ShallowCopy(Helper->Image);
 
-	// create the polydataWriter in correct format
-	vtkPolyDataWriter *Writer = 0;
-	char *Format=Helper->GetOutputFormat();
-	char extension[4];
-	strcpy (extension,"vtk");
-	if (strstr(Format,extension) != NULL) {
-		Writer=vtkPolyDataWriter::New();
-	} else {
-		strcpy (extension, "ply");
-		if (strstr(Format,extension) != NULL) {
-			Writer = (vtkPolyDataWriter*) vtkPLYWriter::New();
-		} else {
-			strcpy (extension, "stl");
-			if (strstr(Format, extension) != NULL) {
-				Writer = (vtkPolyDataWriter*) vtkSTLWriter::New();		
-			} else {
-				strcpy (extension, "obj");
-				if (strstr(Format, extension) != NULL)
-					Writer = (vtkPolyDataWriter*) vtkOBJWriter::New();
-			}
-		}
-	}
+
 
 	vtkDiscreteMarchingCubes *Contour = vtkDiscreteMarchingCubes::New();
 	Contour->ComputeNormalsOff();
@@ -225,7 +239,7 @@ VTK_THREAD_RETURN_TYPE ThreadedSurfaceExtraction (void *arg)
 				if (Helper->Anisotropy!=0) {
 					WantedNumberOfIsotropicVertices=30*WantedNumberOfVertices;
 				}
-					
+
 				vtkIsotropicDiscreteRemeshing *Remesh=vtkIsotropicDiscreteRemeshing::New();
 				Remesh->GetMetric()->SetGradation(Helper->Gradation);
 				vtkSurface *Mesh2 = vtkSurface::New();
@@ -332,11 +346,10 @@ VTK_THREAD_RETURN_TYPE ThreadedSurfaceExtraction (void *arg)
 			Helper->Lock->unlock();
 		}
 
-		Writer->SetInputData(Mesh);
-		Writer->SetFileName(Name.str().c_str());
-		Writer->Write();
+		std::cout<< Name.str() << std::endl;
+		WritePolyDataToFile(Mesh, Name.str().c_str(), Helper->GetOutputFormat());
 		Timer->StopTimer();
-		
+
 		Helper->Lock->lock();
 		cout<< "Label " << Level << " done"<<endl;
 		Helper->Lock->unlock();
@@ -348,12 +361,11 @@ VTK_THREAD_RETURN_TYPE ThreadedSurfaceExtraction (void *arg)
 		double GlobalTime=Timer->GetUniversalTime()-StartTime;
 		Helper->ProcessingTimes[MyId][5]+=GlobalTime;
 		if (Helper->MaximumTimes[MyId][5]<GlobalTime)
-			Helper->MaximumTimes[MyId][5]=GlobalTime;		
+			Helper->MaximumTimes[MyId][5]=GlobalTime;
 	}
 
 	Helper->Lock->lock();
 	Contour->Delete();
-	Writer->Delete();
 	Image->Delete();
 	Timer->Delete();
 	cout<< "Thread " << MyId << " done"<<endl;
